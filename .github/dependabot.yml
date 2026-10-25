@@ -1,13 +1,22 @@
 version: 2
 updates:
+  # cooldownはセキュリティ更新には適用されない。
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       dependencies:
         patterns: ['*']
+  # github/codeql-actionのinitとanalyzeは同じ版でないと失敗するため、まとめて更新する。
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ['*']
