@@ -21,7 +21,11 @@ const answer = (correct: boolean) => {
 };
 
 beforeEach(() => localStorage.clear());
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
 
 describe('練習モード', () => {
   it('回答すると正誤と解説を表示し、最後に結果をまとめて表示する', () => {
@@ -143,11 +147,13 @@ describe('問題のコピー', () => {
 describe('模擬試験モード', () => {
   it('解説を出さずに回答を進め、採点すると結果を表示する', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
+    // 時計を止め、残り時間が制限時間の120分ちょうどから始まることを確かめる
+    vi.setSystemTime(new Date('2026-01-01T09:00:00+09:00'));
     render(<App />);
     fireEvent.click(screen.getByRole('tab', { name: '模擬試験' }));
     click('模擬試験を始める');
     expect(screen.queryByRole('button', { name: '回答する' })).toBeNull();
-    expect(screen.getByText(/残り 2:00:00|残り 1:59:5\d/)).toBeTruthy();
+    expect(screen.getByText('残り 2:00:00')).toBeTruthy();
 
     click(/選択肢 a/);
     expect(screen.queryByRole('region', { name: '解説' })).toBeNull();

@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { makeQuestion } from '../test-helpers.ts';
 import { EMPTY_PROGRESS, recordAnswer, toggleMark } from './progress.ts';
-import { shuffle } from './random.ts';
+import { type Rng, shuffle } from './random.ts';
 import {
   createSession,
-  EXAM_DURATION_MS,
   gradeExam,
   selectExamAnswer,
   submitPracticeAnswer,
@@ -21,10 +20,33 @@ const multi = makeQuestion('m1', {
 });
 const map = new Map([single, multi].map((q) => [q.id, q]));
 
+/** 種が同じなら同じ列を返す乱数（mulberry32）。出題の結果を再現できるよう、Math.random の代わりに使う。 */
+const seeded = (seed: number): Rng => {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
 describe('shuffle', () => {
-  it('乱数が常に0なら、Fisher–Yates の手順どおりに並べ替える', () => {
-    // i=3: 4と1を交換 → [4,2,3,1]、i=2: 3と4を交換 → [3,2,4,1]、i=1: 2と3を交換 → [2,3,4,1]
-    expect(shuffle([1, 2, 3, 4], () => 0)).toEqual([2, 3, 4, 1]);
+  it('3つの要素の6通りの並べ方だけが、どれもほぼ同じ回数ずつ出る', () => {
+    const rng = seeded(1);
+    const runs = 60000;
+    const counts = new Map<string, number>();
+    for (let i = 0; i < runs; i++) {
+      const order = shuffle(['a', 'b', 'c'], rng).join('');
+      counts.set(order, (counts.get(order) ?? 0) + 1);
+    }
+    expect([...counts.keys()].sort()).toEqual(['abc', 'acb', 'bac', 'bca', 'cab', 'cba']);
+    // 1通りあたりの期待値は10000回、標準偏差は約91回。偏りのない並べ替えならまず外れず、偏りのある並べ替えは外れる幅にする
+    for (const [order, n] of counts) {
+      expect(n, order).toBeGreaterThan(9500);
+      expect(n, order).toBeLessThan(10500);
+    }
   });
 
   it('元の配列を変更しない', () => {
@@ -36,7 +58,7 @@ describe('shuffle', () => {
 
 describe('createSession', () => {
   it('対象の問題から指定した数を、重複なくランダムに選ぶ', () => {
-    const s = createSession('practice', pool, 5, 0);
+    const s = createSession('practice', pool, 5, 0, seeded(1));
     expect(s.questionIds).toHaveLength(5);
     expect(new Set(s.questionIds).size).toBe(5);
     for (const id of s.questionIds) expect(pool.map((q) => q.id)).toContain(id);
@@ -48,19 +70,19 @@ describe('createSession', () => {
   });
 
   it('同じ条件でも、乱数によって出題順が変わる', () => {
-    const a = createSession('practice', pool, 'all', 0, () => 0);
-    const b = createSession('practice', pool, 'all', 0, () => 0.99);
+    const a = createSession('practice', pool, 'all', 0, seeded(1));
+    const b = createSession('practice', pool, 'all', 0, seeded(2));
     expect(a.questionIds).not.toEqual(b.questionIds);
     expect([...a.questionIds].sort()).toEqual([...b.questionIds].sort());
   });
 
   it('問題ごとに、選択肢の表示順を全選択肢の並べ替えとして決める', () => {
-    const s = createSession('practice', [multi], 'all', 0);
+    const s = createSession('practice', [multi], 'all', 0, seeded(1));
     expect([...(s.choiceOrder.m1 ?? [])].sort()).toEqual(['a', 'b', 'c', 'd', 'e']);
   });
 
   it('模擬試験だけに、開始から120分後の制限時刻を設定する', () => {
-    expect(createSession('exam', pool, 5, 1000).deadline).toBe(1000 + EXAM_DURATION_MS);
+    expect(createSession('exam', pool, 5, 1000).deadline).toBe(1000 + 120 * 60 * 1000);
     expect(createSession('practice', pool, 5, 1000).deadline).toBeUndefined();
   });
 });
