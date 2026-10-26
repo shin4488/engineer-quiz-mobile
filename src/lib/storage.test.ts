@@ -45,10 +45,41 @@ const sample: AppData = {
   prefs: { filter: { ...EMPTY_FILTER, domains: ['store'], minWrong: 2 }, count: 20 },
 };
 
+/**
+ * 以前の版が保存したデータ（sample と同じ内容）。保存データの形式を変えても、利用者の端末に残っているこの形式を読み込めるようにする。
+ * 型から作ると形式の変更に追従してしまうため、保存される JSON のとおりに書く。
+ */
+const savedByEarlierVersion = {
+  progress: {
+    stats: {
+      'design-security-001': { correct: 2, wrong: 3, lastResult: 'wrong', lastAnsweredAt: 5 },
+    },
+    marked: ['store-selection-002'],
+  },
+  session: null,
+  history: [{ mode: 'exam', startedAt: 1, finishedAt: 2, total: 50, correct: 36 }],
+  prefs: {
+    filter: {
+      domains: ['store'],
+      services: [],
+      markedOnly: false,
+      minWrong: 2,
+      unansweredOnly: false,
+    },
+    count: 20,
+  },
+};
+
 describe('loadData / saveData', () => {
   it('保存したデータを、次回の起動時に同じ内容で読み込む', () => {
     const storage = new MemoryStorage();
     expect(saveData(sample, storage)).toBe(true);
+    expect(loadData(storage)).toEqual(sample);
+  });
+
+  it('以前の版が保存したデータを、同じ内容で読み込む', () => {
+    const storage = new MemoryStorage();
+    storage.setItem('pde-quiz:v1', JSON.stringify(savedByEarlierVersion));
     expect(loadData(storage)).toEqual(sample);
   });
 
@@ -78,20 +109,38 @@ describe('exportData / importData', () => {
     expect(result).toEqual({ ok: true, data: sample });
   });
 
-  it('JSON でないデータは読み込まない', () => {
-    expect(importData('hello')).toMatchObject({ ok: false });
+  it('以前の版で書き出したファイルを、同じ内容で読み込む', () => {
+    const file = {
+      app: 'pde-quiz',
+      version: 1,
+      exportedAt: '2026-01-01T00:00:00.000Z',
+      ...savedByEarlierVersion,
+    };
+    expect(importData(JSON.stringify(file))).toEqual({ ok: true, data: sample });
   });
 
-  it('このアプリ以外で作られたデータは読み込まない', () => {
-    expect(importData(JSON.stringify({ ...sample, app: 'other', version: 1 }))).toMatchObject({
+  // 読み込めなかった理由は、データの画面にそのまま表示する
+  it('JSON でないデータは読み込まず、JSON として読み込めなかったと知らせる', () => {
+    expect(importData('hello')).toEqual({
       ok: false,
+      message: 'JSON として読み込めませんでした。',
     });
   });
 
-  it('成績の値が不正なデータは読み込まない', () => {
+  it('このアプリ以外で作られたデータは読み込まず、このアプリのデータではないと知らせる', () => {
+    expect(importData(JSON.stringify({ ...sample, app: 'other', version: 1 }))).toEqual({
+      ok: false,
+      message: 'このアプリで書き出したデータではありません。',
+    });
+  });
+
+  it('成績の値が不正なデータは読み込まず、形式が正しくないと知らせる', () => {
     const bad = JSON.parse(exportData(sample, 0));
     bad.progress.stats['design-security-001'].wrong = -1;
-    expect(importData(JSON.stringify(bad))).toMatchObject({ ok: false });
+    expect(importData(JSON.stringify(bad))).toEqual({
+      ok: false,
+      message: 'データの形式が正しくありません。',
+    });
   });
 });
 
