@@ -4,6 +4,8 @@
   "files": { "ignoreUnknown": true, "includes": ["**", "!src/data/diagrams"] },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "javascript": { "formatter": { "quoteStyle": "single" } },
+  "markdown": { "formatter": { "enabled": false } },
+  "yaml": { "formatter": { "enabled": false } },
   "linter": { "enabled": true },
   "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } }
 }
