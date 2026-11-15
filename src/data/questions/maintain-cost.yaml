@@ -119,7 +119,7 @@
 
     - ジョブはキューに入り、作成から **6時間以内** に Dataflow が都合のよいタイミングで開始する
     - プリエンプティブル VM と通常の VM を組み合わせ、割引された単価で課金される
-    - Dataflow Shuffle を使うため、VM が回収されても処理を続けやすい
+    - グループ化や結合（シャッフル）の処理をワーカー VM ではなく Dataflow のサービス側で行う Dataflow Shuffle を使う。VM が回収されても、Dataflow が残りのワーカーにデータを配り直す必要がないため、処理を続けやすい
     - 有効にする方法：Java は `--flexRSGoal=COST_OPTIMIZED`、Python は `--flexrs_goal=COST_OPTIMIZED`
 
     向いているのは、夜間の ETL や日次の集計など **開始時刻に余裕がある** バッチジョブです。終了時刻の SLA が厳しいジョブや、ストリーミング パイプラインには使いません。
@@ -389,6 +389,8 @@
   explanation: |
     Airflow のタスクは **べき等**（何度実行しても同じ結果になる）に作るのが基本です。再試行、手動の再実行、バックフィルのどれでも安全に実行できるようになります。
 
+    **論理日付** は、DAG 実行が処理の対象にする期間を表す日付で、Airflow がスケジュールから DAG 実行ごとに決めます。実際に実行した日時ではないため、再試行しても変わりません。
+
     べき等にするためのポイント
     - **処理対象の期間は、実行時刻ではなく DAG 実行の論理日付（データ区間）から決める**。`{{ ds }}`、`{{ ds_nodash }}`、`{{ data_interval_start }}` などのテンプレート変数を、オペレーターの引数で使う
     - **書き込みは追記ではなく置き換えにする**。対象日のパーティション（`table$YYYYMMDD`）を WRITE_TRUNCATE で上書きする、MERGE を使う、など
@@ -410,6 +412,8 @@
       url: "https://docs.cloud.google.com/composer/docs/composer-3/write-dags"
     - title: "DAG のトラブルシューティング"
       url: "https://docs.cloud.google.com/composer/docs/composer-3/troubleshooting-dags"
+    - title: "Airflow DAG のスケジュール設定とトリガー"
+      url: "https://docs.cloud.google.com/composer/docs/composer-3/schedule-and-trigger-dags"
 
 - id: maintain-cost-010
   domain: maintain
@@ -433,7 +437,7 @@
   choiceNotes:
     a: "正解です。catchup を無効にすると、DAG を有効にしたときに過去の未実行の期間の分はまとめて作成されず、最新の期間から実行されます。"
     b: "正解です。過去の特定の期間だけを処理し直すには、期間を指定したバックフィルを使います。DAG のタスクがべき等であれば、何度処理し直しても結果は変わりません。"
-    c: "start_date を動的に変えると、スケジュールの計算が不安定になり、実行が作成されないなどの問題が起きます。start_date は固定の日付にするのが原則です。"
+    c: "Airflow は start_date を過ぎてから最初の実行をスケジュールします。start_date が常に現在の時刻だと、実行の予定がいつまでも先の時刻になり、DAG が実行されません。start_date は固定の日付にします。"
     d: "同時実行は減りますが、過去1年分の実行はすべて作成されて順番に処理されます。最新の期間だけを処理するという要件に反します。"
     e: "定期実行の自動化をやめることになり、運用の手間が増えます。過去の期間の処理し直しにも対応していません。"
   explanation: |
@@ -454,6 +458,8 @@
       url: "https://docs.cloud.google.com/composer/docs/composer-3/schedule-and-trigger-dags"
     - title: "Airflow DAG を作成する"
       url: "https://docs.cloud.google.com/composer/docs/composer-3/write-dags"
+    - title: "Airflow スケジューラに関する問題のトラブルシューティング"
+      url: "https://docs.cloud.google.com/composer/docs/composer-3/troubleshooting-scheduling"
 
 - id: maintain-cost-011
   domain: maintain
@@ -483,7 +489,7 @@
     | reschedule モード | 確認の合間は解放する | 確認のたびにワーカーで実行される |
     | 遅延可能モード（deferrable） | 解放する | 確認はトリガラーが非同期にまとめて行う |
 
-    **遅延可能なオペレーター**（deferrable operators）を使うには、環境で **トリガラー**（triggerer）が1つ以上（高い復元力の環境では2つ以上）動いている必要があります。トリガラーの数は、環境の構成で変更できます。
+    **トリガラー**（triggerer）は、延期されたタスクの条件をワーカーとは別に非同期で監視する、環境のコンポーネントです。**遅延可能なオペレーター**（deferrable operators）を使うには、環境でトリガラーが1つ以上（高い復元力の環境では2つ以上）動いている必要があります。トリガラーの数は、環境の構成で変更できます。
 
     長時間の待機が多い DAG では、遅延可能モードにすると少ないワーカーで多くのタスクを実行でき、ワーカーの自動スケーリングによる費用の増加も抑えられます。
   diagram: |

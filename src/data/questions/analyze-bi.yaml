@@ -193,7 +193,7 @@
   answer: [a]
   choiceNotes:
     a: "正解です。allow_non_incremental_definition を true にした非増分マテリアライズド ビューは、ウィンドウ関数を含むクエリも定義でき、max_staleness と組み合わせて使います。最後の更新が max_staleness より古い場合は、ベーステーブルから結果が返されます。"
-    b: "allow_non_incremental_definition を指定しないと、ウィンドウ関数を含むビューは作成できません。また、スマート チューニングは非増分マテリアライズド ビューには使われません。"
+    b: "allow_non_incremental_definition を指定しないと、ウィンドウ関数を含むビューは作成できません。また、スマート チューニングは非増分マテリアライズド ビューには使われないため、ダッシュボードの元のクエリのままでは、ビューの保存結果は使われません。"
     c: "スケジュールの管理が必要で、ジョブが失敗したり遅れたりすると、6時間より古いランキングがそのまま表示されます。"
     d: "論理ビューは BI Engine の優先テーブルに指定できません。結果も保存されないため、重いクエリが毎回実行されます。"
   explanation: |
@@ -205,6 +205,8 @@
     | 必要なオプション | なし | `allow_non_incremental_definition = true` と `max_staleness` |
     | 結果の鮮度 | 常に最新（max_staleness を設定した場合はその範囲内） | 最後の更新が max_staleness 以内ならビューの結果、古ければベーステーブルを読む |
     | スマート チューニング | 対象 | 対象外。ビューを直接参照する |
+
+    **スマート チューニング** は、ベーステーブルを参照するクエリを、マテリアライズド ビューを使うように BigQuery が自動で書き換える機能です。非増分のビューには適用されないため、保存結果を使うにはクエリでビューを直接参照します。
 
     非増分のビューでは、自動更新の間隔を max_staleness より短くしておくと、ほとんどのクエリがビューの保存結果で処理されます。
 
@@ -235,6 +237,8 @@
       url: "https://docs.cloud.google.com/bigquery/docs/materialized-views-create"
     - title: "マテリアライズド ビューの概要"
       url: "https://docs.cloud.google.com/bigquery/docs/materialized-views-intro"
+    - title: "マテリアライズド ビューを使用する"
+      url: "https://docs.cloud.google.com/bigquery/docs/materialized-views-use"
 
 - id: analyze-bi-006
   domain: analyze

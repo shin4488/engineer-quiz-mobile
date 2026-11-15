@@ -434,7 +434,7 @@
     b: "Pub/Sub の CMEK はトピックに保存されるメッセージを保護するもので、Dataflow のジョブには適用されません。Dataflow 側で鍵を指定する必要があります。"
     c: "正解です。`dataflowKmsKey`（Python では `dataflow_kms_key`）で鍵を指定すると、ワーカーのディスクや Streaming Engine の状態など、Dataflow が保存するデータがその鍵で保護されます。鍵はジョブと同じリージョンに作成します。"
     d: "鍵の管理者ロールは鍵の作成や管理のためのロールで、暗号化と復号には使われません。要件を満たさないうえ、過剰な権限です。"
-    e: "正解です。Dataflow で CMEK を使うには、Dataflow サービスエージェントと Compute Engine サービスエージェントの両方に、その鍵の `roles/cloudkms.cryptoKeyEncrypterDecrypter` が必要です。"
+    e: "正解です。Dataflow で CMEK を使うには、Dataflow サービスエージェントと Compute Engine サービスエージェントの両方に、その鍵の `roles/cloudkms.cryptoKeyEncrypterDecrypter` が必要です。ワーカーは Compute Engine の VM で、ワーカーのディスクも CMEK で保護されます。Compute Engine のディスクを CMEK で保護するには、Compute Engine サービスエージェントにこのロールを付与する必要があります。"
   explanation: |
     パイプライン全体を CMEK で保護するには、**サービスごとに** CMEK を設定します。あるサービスの設定が、ほかのサービスに引き継がれることはありません。
 
@@ -453,6 +453,8 @@
       url: "https://docs.cloud.google.com/dataflow/docs/guides/customer-managed-encryption-keys"
     - title: "顧客管理の暗号鍵（CMEK）"
       url: "https://docs.cloud.google.com/kms/docs/cmek"
+    - title: "Cloud KMS 鍵を使用してリソースを保護する"
+      url: "https://docs.cloud.google.com/compute/docs/disks/customer-managed-encryption"
 
 - id: design-security-012
   domain: design
@@ -725,7 +727,7 @@
     c: "正解です。Masked Reader を持つアナリストがクエリを実行すると、メールアドレスはハッシュ値に置き換えて返されます。同じ値は同じハッシュ値になるため、メールアドレスごとの集計や重複を除いた件数の集計は引き続きできます。"
     d: "テーブルを複製しないという要件に反し、毎日の変換処理も必要です。参照するテーブルも変わるため、クエリの変更が必要になります。"
   explanation: |
-    **動的データマスキング** は、ポリシータグにデータポリシー（マスキングルール）を関連付けて、ユーザーのロールに応じて列の値の見え方を変える機能です。
+    **動的データマスキング** は、ユーザーのロールに応じて列の値の見え方を変える機能です。アクセスを制限したい列には **ポリシータグ** を付けます。そのポリシータグに、マスキングルールと対象のユーザーを定めた **データポリシー** を関連付けると、その列にマスキングが適用されます。
 
     | ユーザーが持つロール | クエリ結果 |
     | --- | --- |
