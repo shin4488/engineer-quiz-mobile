@@ -414,6 +414,8 @@
       url: "https://docs.cloud.google.com/composer/docs/composer-3/troubleshooting-dags"
     - title: "Airflow DAG のスケジュール設定とトリガー"
       url: "https://docs.cloud.google.com/composer/docs/composer-3/schedule-and-trigger-dags"
+    - title: "Airflow 3 に環境を移行する（サイドバイサイド）"
+      url: "https://docs.cloud.google.com/composer/docs/composer-3/migrate-airflow-3"
 
 - id: maintain-cost-010
   domain: maintain

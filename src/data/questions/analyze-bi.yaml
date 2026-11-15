@@ -534,7 +534,7 @@
 
     このプロジェクトでは、マテリアライズド ビューと BI Engine は使っていません。また、テーブルには毎日新しいデータが追加されています。この変化の理由として最も適切なものはどれですか？
   choices:
-    a: "履歴ベースの最適化が、以前の実行で得た情報を使い、選択性の高い結合を先に実行するなどの最適化を適用した"
+    a: "履歴ベースの最適化が、同じようなクエリの以前の実行で得た情報を使い、追加の最適化を適用した"
     b: "クエリ結果のキャッシュが使われるようになり、以前の実行結果がそのまま返されるようになった"
     c: "スマート チューニングが、事前に計算された結果を読み取るようにクエリを自動で書き換えた"
     d: "BI Engine が、よく参照されるテーブルを自動的にメモリに読み込んで処理を高速化した"
@@ -547,10 +547,10 @@
   explanation: |
     **履歴ベースの最適化** は、同じようなクエリの過去の実行から得た情報をもとに、次回以降の実行を最適化する BigQuery の機能です。
 
-    - 最適化の例：選択性の高い結合を先に実行する（結合のプッシュダウン）、セミジョインを挿入して処理するデータ量を減らす（セミジョインの削減）
+    - 最適化は実行を重ねるごとに追加され、追加できるものがなくなるまで続く。そのため、何回か実行した後からスロット使用時間が減る
     - 効果が高いと判断できる場合にだけ適用され、効果がなかった最適化は以後使われない
-    - 現在は **既定で有効**。無効にしていた場合は、`ALTER PROJECT` や `ALTER ORGANIZATION` で `default_query_optimizer_options = 'adaptive=on'` を設定して有効にする
-    - 適用された最適化は、`INFORMATION_SCHEMA.JOBS` の `query_info.optimization_details` で確認できる（適用されていなければ NULL）
+    - **既定で有効**。構成設定の `default_query_optimizer_options` を `'adaptive=off'` にすると無効になり、`'adaptive=on'` にすると有効に戻る。設定には `ALTER PROJECT` や `ALTER ORGANIZATION` を使う
+    - 適用された最適化は、`INFORMATION_SCHEMA.JOBS` の `query_info.optimization_details` で確認できる（適用されていなければ NULL）。結合に関する `semi_join_reduction` や `join_commutation`、並列度に関する `parallelism_adjustment` などが記録される
 
     クエリを速くする BigQuery の仕組みを整理しておきましょう。
 
@@ -563,6 +563,8 @@
   references:
     - title: "履歴ベースの最適化を使用する"
       url: "https://docs.cloud.google.com/bigquery/docs/history-based-optimizations"
+    - title: "構成設定を管理する"
+      url: "https://docs.cloud.google.com/bigquery/docs/default-configuration"
 
 - id: analyze-bi-012
   domain: analyze
