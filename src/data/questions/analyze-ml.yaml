@@ -274,7 +274,7 @@
   choiceNotes:
     a: "正解です。ML.ROC_CURVE はしきい値ごとの recall や偽陽性率を返します。しきい値を下げると precision は下がりますが recall は上がります。選んだしきい値は ML.PREDICT の引数で指定できます。"
     b: "しきい値を上げると陽性と判定される人が減るため、recall はさらに下がります。要望と逆の効果になります。"
-    c: "roc_auc は、すべてのしきい値を通したモデルの識別能力を表す指標で、陽性を検出できる割合（recall）ではありません。現在の recall は0.41です。"
+    c: "roc_auc は、しきい値を変えながら recall と偽陽性率の関係を描いた ROC 曲線の下の面積です。特定のしきい値で陽性を検出できる割合（recall）ではありません。現在の recall は0.41です。"
     d: "モデルの再学習を伴うため、「モデルを再学習せずに」という条件に反します。まずはしきい値の調整で対応できます。"
   explanation: |
     二値分類モデルは陽性である **確率** を出力し、**しきい値** を超えたものを陽性と判定します。しきい値を変えると、precision と recall がトレードオフの関係で変わります。
@@ -284,7 +284,7 @@
     | precision | 陽性と判定したうち、実際に陽性だった割合 | 誤検知のコストが大きい（例：誤ったアカウント停止） |
     | recall | 実際の陽性のうち、陽性と判定できた割合 | 見逃しのコストが大きい（例：疾患、不正利用） |
     | f1_score | precision と recall の調和平均 | 両方のバランスを見る場合 |
-    | roc_auc | すべてのしきい値を通した識別能力 | モデル同士を比較する場合 |
+    | roc_auc | ROC 曲線（しきい値を変えながら、recall と偽陽性率の関係を描いた曲線）の下の面積。0〜1の値を取り、大きいほどモデルの品質が高い | モデル同士を比較する場合 |
 
     BigQuery ML の関連する関数は次のとおりです。
 
@@ -307,6 +307,8 @@
       url: "https://docs.cloud.google.com/bigquery/docs/evaluate-overview"
     - title: "The ML.EVALUATE function"
       url: "https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-evaluate"
+    - title: "The ML.ROC_CURVE function"
+      url: "https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-roc"
 
 - id: analyze-ml-007
   domain: analyze
@@ -752,7 +754,7 @@
     c: "ファイル名や URI には写真の内容がほとんど含まれないため、内容の近い写真は探せません。"
     d: "異なるモデルで作ったエンベディングは別々のベクトル空間にあるため、距離を比較しても意味の近さを表しません。"
   explanation: |
-    画像やテキストなどの **非構造化データ** を意味の近さで検索するには、エンベディング（ベクトル）を使います。
+    画像やテキストなどの **非構造化データ** を意味の近さで検索するには、エンベディングを使います。エンベディングは、画像や文章の内容をモデルで数値のベクトルに変換したものです。同じモデルで変換したエンベディングは、内容の意味が近いほどベクトル同士の距離が近くなるため、距離の近いものを探せば意味の近いものが見つかります。
 
     1. Cloud Storage の画像を参照する **オブジェクト テーブル** を用意する
     2. マルチモーダル エンベディング モデルを指すリモートモデルを作成する
@@ -760,7 +762,7 @@
     4. 検索文を同じモデルでエンベディングにし、`VECTOR_SEARCH` で距離の近い画像を探す
     5. データ量が多い場合は、エンベディングの列に **ベクトル インデックス** を作成して検索を高速化する
 
-    - マルチモーダル エンベディングは、テキスト・画像・動画を **同じ意味空間** に変換するため、文章で画像を検索できる
+    - マルチモーダル エンベディングは、テキスト・画像・動画を、互いに距離を比較できる **同じベクトル空間** のベクトルに変換するため、文章で画像を検索できる
     - VECTOR_SEARCH はインデックスがなくても動作するが、インデックスがあると多くの場合で性能が上がる
     - ベクトル インデックスの種類には、k-means でベクトルをクラスタに分ける **IVF** と、ScaNN に基づき、多数の検索をまとめて実行するバッチ処理に向いた **TREE_AH** がある
     - 新しいクエリでは、ML.GENERATE_EMBEDDING と同じ機能で出力列の名前が簡潔になった `AI.GENERATE_EMBEDDING` の利用が推奨されている
@@ -777,6 +779,8 @@
       url: "https://docs.cloud.google.com/bigquery/docs/generate-multimodal-embeddings"
     - title: "Manage vector indexes"
       url: "https://docs.cloud.google.com/bigquery/docs/vector-index"
+    - title: "エンベディングとベクトル検索の概要"
+      url: "https://docs.cloud.google.com/bigquery/docs/vector-search-intro"
 
 - id: analyze-ml-017
   domain: analyze

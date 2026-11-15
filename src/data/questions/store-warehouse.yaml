@@ -714,7 +714,8 @@
     - 1つのオブジェクトが1行になり、`uri`、`content_type`、`size`、`updated` などのメタデータが列として見えます。
     - オブジェクトの内容は `data` 疑似列で参照でき、`ML.DECODE_IMAGE` 関数で画像を変換して BigQuery ML の推論に渡せます。リモート関数やリモートモデルで分析することもできます。
     - 推論の結果は、BigQuery の構造化データとそのまま結合できます。
-    - BigLake と同じく接続によるアクセスの委任を使うため、行アクセス ポリシーで、利用者ごとに見えるオブジェクトを絞り込めます（例：工場ごとのフォルダの URI で絞り込む）。
+    - Cloud Storage のオブジェクトは、テーブルに指定した接続（下の SQL の `WITH CONNECTION`）のサービス アカウントが、利用者の代わりに読み取ります。この仕組みを **アクセスの委任** と呼び、BigLake テーブルと共通です。利用者にはテーブルへの権限だけを付与し、バケットへの権限は付与しません。
+    - 利用者はテーブルを通してだけオブジェクトを扱うため、行アクセス ポリシーで、利用者ごとに見えるオブジェクトを絞り込めます（例：工場ごとのフォルダの URI で絞り込む）。
 
     ```sql
     CREATE EXTERNAL TABLE qc.inspection_images
@@ -798,7 +799,7 @@
     d: "Spark の Iceberg カタログに BigLake metastore を使い、BigQuery から同じテーブルを直接参照する"
   answer: [d]
   choiceNotes:
-    a: "テーブルの作成や更新のたびに手作業が必要になり、要件に反します。メタデータ ファイルを指定したテーブルは、新しいスナップショットに合わせて定義を更新する必要があります。"
+    a: "テーブルの作成や更新のたびに手作業が必要になり、要件に反します。この方法の外部テーブルは、作成時に指定した JSON メタデータ ファイルを参照し続けます。Spark がテーブルを更新したら、参照先を最新の JSON メタデータ ファイルに手作業で変更する必要があります。"
     b: "データが BigQuery に複製されるため、要件に反します。読み込みの処理とその監視も必要になります。"
     c: "メタストアのサーバーを自分たちで運用することになり、テーブルごとの定義の作業も残ります。"
     d: "正解です。BigLake metastore はサーバーレスの共有メタストアで、Spark などのオープンソースのエンジンと BigQuery が、同じ Iceberg のテーブル定義を参照できます。"
@@ -825,6 +826,8 @@
   references:
     - title: "BigLake metastore の Iceberg REST カタログを使用する"
       url: "https://docs.cloud.google.com/biglake/docs/blms-rest-catalog"
+    - title: "Apache Iceberg 外部テーブルを作成する"
+      url: "https://docs.cloud.google.com/bigquery/docs/iceberg-external-tables"
 
 - id: store-warehouse-017
   domain: store
@@ -849,7 +852,8 @@
     Dataplex Universal Catalog の **自動検出（ディスカバリー スキャン）** を使うと、Cloud Storage のデータレイクを手作業なしで BigQuery から使えるようにできます。
 
     - バケットやパスの中のファイルを読み、同じ形式のファイルをまとめてテーブルにします。スキーマとパーティションの定義も自動で収集します。
-    - 構造化・半構造化データ：接続を指定すると BigLake テーブル、指定しないと通常の外部テーブルが作成されます。
+    - 構造化・半構造化データ：スキャンに Cloud リソース接続を指定すると BigLake テーブル、指定しないと通常の外部テーブルが作成されます。
+    - BigLake テーブルでは、接続に紐づくサービス アカウントが利用者の代わりに Cloud Storage のデータを読み取ります。そのため、利用者にはテーブルへの権限だけを付与すればよく、バケットへの権限は不要です。通常の外部テーブルでは、利用者にテーブルとバケットのデータの両方への権限が必要です。
     - 非構造化データ：同じ種類のファイルのまとまりが、オブジェクト テーブルとして登録されます。
     - 作成されたテーブルはカタログにも登録されるため、利用者は検索して見つけられます。
     - スキャンは定期的に実行でき、ファイルの追加やスキーマの変化がテーブルに反映されます。
@@ -866,6 +870,8 @@
   references:
     - title: "Cloud Storage のデータを検出してカタログに登録する"
       url: "https://docs.cloud.google.com/bigquery/docs/automatic-discovery"
+    - title: "BigLake 外部テーブルの概要"
+      url: "https://docs.cloud.google.com/bigquery/docs/biglake-intro"
 
 - id: store-warehouse-018
   domain: store

@@ -193,7 +193,7 @@
   answer: [a]
   choiceNotes:
     a: "正解です。allow_non_incremental_definition を true にした非増分マテリアライズド ビューは、ウィンドウ関数を含むクエリも定義でき、max_staleness と組み合わせて使います。最後の更新が max_staleness より古い場合は、ベーステーブルから結果が返されます。"
-    b: "allow_non_incremental_definition を指定しないと、ウィンドウ関数を含むビューは作成できません。また、スマート チューニングは非増分マテリアライズド ビューには使われません。"
+    b: "allow_non_incremental_definition を指定しないと、ウィンドウ関数を含むビューは作成できません。また、スマート チューニングは非増分マテリアライズド ビューには使われないため、ダッシュボードの元のクエリのままでは、ビューの保存結果は使われません。"
     c: "スケジュールの管理が必要で、ジョブが失敗したり遅れたりすると、6時間より古いランキングがそのまま表示されます。"
     d: "論理ビューは BI Engine の優先テーブルに指定できません。結果も保存されないため、重いクエリが毎回実行されます。"
   explanation: |
@@ -205,6 +205,8 @@
     | 必要なオプション | なし | `allow_non_incremental_definition = true` と `max_staleness` |
     | 結果の鮮度 | 常に最新（max_staleness を設定した場合はその範囲内） | 最後の更新が max_staleness 以内ならビューの結果、古ければベーステーブルを読む |
     | スマート チューニング | 対象 | 対象外。ビューを直接参照する |
+
+    **スマート チューニング** は、ベーステーブルを参照するクエリを、マテリアライズド ビューを使うように BigQuery が自動で書き換える機能です。非増分のビューには適用されないため、保存結果を使うにはクエリでビューを直接参照します。
 
     非増分のビューでは、自動更新の間隔を max_staleness より短くしておくと、ほとんどのクエリがビューの保存結果で処理されます。
 
@@ -235,6 +237,8 @@
       url: "https://docs.cloud.google.com/bigquery/docs/materialized-views-create"
     - title: "マテリアライズド ビューの概要"
       url: "https://docs.cloud.google.com/bigquery/docs/materialized-views-intro"
+    - title: "マテリアライズド ビューを使用する"
+      url: "https://docs.cloud.google.com/bigquery/docs/materialized-views-use"
 
 - id: analyze-bi-006
   domain: analyze
@@ -530,7 +534,7 @@
 
     このプロジェクトでは、マテリアライズド ビューと BI Engine は使っていません。また、テーブルには毎日新しいデータが追加されています。この変化の理由として最も適切なものはどれですか？
   choices:
-    a: "履歴ベースの最適化が、以前の実行で得た情報を使い、選択性の高い結合を先に実行するなどの最適化を適用した"
+    a: "履歴ベースの最適化が、同じようなクエリの以前の実行で得た情報を使い、追加の最適化を適用した"
     b: "クエリ結果のキャッシュが使われるようになり、以前の実行結果がそのまま返されるようになった"
     c: "スマート チューニングが、事前に計算された結果を読み取るようにクエリを自動で書き換えた"
     d: "BI Engine が、よく参照されるテーブルを自動的にメモリに読み込んで処理を高速化した"
@@ -543,10 +547,10 @@
   explanation: |
     **履歴ベースの最適化** は、同じようなクエリの過去の実行から得た情報をもとに、次回以降の実行を最適化する BigQuery の機能です。
 
-    - 最適化の例：選択性の高い結合を先に実行する（結合のプッシュダウン）、セミジョインを挿入して処理するデータ量を減らす（セミジョインの削減）
+    - 最適化は実行を重ねるごとに追加され、追加できるものがなくなるまで続く。そのため、何回か実行した後からスロット使用時間が減る
     - 効果が高いと判断できる場合にだけ適用され、効果がなかった最適化は以後使われない
-    - 現在は **既定で有効**。無効にしていた場合は、`ALTER PROJECT` や `ALTER ORGANIZATION` で `default_query_optimizer_options = 'adaptive=on'` を設定して有効にする
-    - 適用された最適化は、`INFORMATION_SCHEMA.JOBS` の `query_info.optimization_details` で確認できる（適用されていなければ NULL）
+    - **既定で有効**。構成設定の `default_query_optimizer_options` を `'adaptive=off'` にすると無効になり、`'adaptive=on'` にすると有効に戻る。設定には `ALTER PROJECT` や `ALTER ORGANIZATION` を使う
+    - 適用された最適化は、`INFORMATION_SCHEMA.JOBS` の `query_info.optimization_details` で確認できる（適用されていなければ NULL）。結合に関する `semi_join_reduction` や `join_commutation`、並列度に関する `parallelism_adjustment` などが記録される
 
     クエリを速くする BigQuery の仕組みを整理しておきましょう。
 
@@ -559,6 +563,8 @@
   references:
     - title: "履歴ベースの最適化を使用する"
       url: "https://docs.cloud.google.com/bigquery/docs/history-based-optimizations"
+    - title: "構成設定を管理する"
+      url: "https://docs.cloud.google.com/bigquery/docs/default-configuration"
 
 - id: analyze-bi-012
   domain: analyze
